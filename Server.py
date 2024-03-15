@@ -6,6 +6,8 @@ SERVER_NAME = 'ALMOGOR SERVER'
 
 
 def get_message(s, size_of_message):
+    if size_of_message == 0:
+        return ''
     return s.recv(size_of_message + 1024).decode()  # Adding 1024 to clean up the rest of the data in the socket
 
 
@@ -14,7 +16,7 @@ def clean_up_remain_data_in_socket(s):
     print(f"Cleaning up remaining data: {data.decode()}")
 
 
-def start_server(host='127.0.0.1', port=65431):
+def start_server(host='127.0.0.1', port=65430):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -41,7 +43,8 @@ def start_server(host='127.0.0.1', port=65431):
                 data = get_message(conn, msg_len)  # Get the message from the client
 
                 if not data:
-                    break
+                    conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
+                    continue
 
                 if len(data) != msg_len:
                     print("Invalid message received: length does not match header")
