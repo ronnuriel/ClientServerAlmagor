@@ -6,11 +6,7 @@ SERVER_NAME = 'ALMOGOR SERVER'
 
 
 def get_message(s, size_of_message):
-    msg = ''
-    data = s.recv(size_of_message + 1024) # Adding 1024 to clean up the rest of the data in the socket
-    msg += data.decode()
-
-    return msg
+    return s.recv(size_of_message + 1024).decode()  # Adding 1024 to clean up the rest of the data in the socket
 
 
 def clean_up_remain_data_in_socket(s):
@@ -18,7 +14,7 @@ def clean_up_remain_data_in_socket(s):
     print(f"Cleaning up remaining data: {data.decode()}")
 
 
-def start_server(host='127.0.0.1', port=65430):
+def start_server(host='127.0.0.1', port=65431):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -38,6 +34,7 @@ def start_server(host='127.0.0.1', port=65430):
                         continue
                 else:
                     print("Invalid header received: not 4 bytes")
+                    conn.send("WRONG PROTOCOL!!!".encode())
                     clean_up_remain_data_in_socket(conn)
                     continue
 
@@ -48,7 +45,10 @@ def start_server(host='127.0.0.1', port=65430):
 
                 if len(data) != msg_len:
                     print("Invalid message received: length does not match header")
-                    break
+                    conn.send("WRONG PROTOCOL!!!".encode())
+                    if len(data) > msg_len:
+                        print(f"Cleaning up remaining data: {data[msg_len:]}")
+                    continue
 
                 if data == 'EXIT':
                     print("Client has exited")
@@ -72,7 +72,7 @@ def start_server(host='127.0.0.1', port=65430):
                     continue
 
                 print(f"Received from client: {data}")
-                conn.send(data.encode())  # Echo back the received message
+                conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
 
 
 if __name__ == "__main__":
