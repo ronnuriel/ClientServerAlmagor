@@ -1,6 +1,8 @@
 import datetime
 import random
 import socket
+import glob
+import os
 
 SERVER_NAME = 'ALMOGOR SERVER'
 
@@ -57,21 +59,36 @@ def start_server(host='127.0.0.1', port=65430):
                     print("Client has exited")
                     break
 
-                if data == 'TIME':
-                    print("Client has requested for time")
-                    time = str(datetime.datetime.now().ctime())
+                if data[:3] == 'DIR':
+                    location = data[4:]
+                    print("Client has requested for directory listing")
+                    print("Location: ", location)
 
-                    conn.send(time.encode())
+                    if location:
+                        files = glob.glob(location + "/*.*")
+                        conn.send(str(files).encode())
+
+                    else:
+                        conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
                     continue
 
-                if data == 'WHOR':
-                    print("Client has requested for hostname")
-                    conn.send(SERVER_NAME.encode())
+                if data[:6] == 'DELETE':
+                    file_name = data[7:]
+                    if os.path.exists(file_name):
+                        os.remove(file_name)
+                        conn.send(f"File {file_name} has been deleted".encode())
+                    else:
+                        conn.send(f"File {file_name} does not exist".encode())
+
                     continue
 
-                if data == 'RAND':
-                    print("Client has requested for random number")
-                    conn.send(str.encode(str(random.randint(1, 10))))
+                if data == 'COPY':
+                    continue
+
+                if data == 'EXECUTE':
+                    continue
+
+                if data == 'TAKE SCREENSHOT':
                     continue
 
                 print(f"Received from client: {data}")
