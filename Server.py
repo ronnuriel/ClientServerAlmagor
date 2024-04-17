@@ -3,6 +3,7 @@ import random
 import socket
 import glob
 import os
+import subprocess
 
 SERVER_NAME = 'ALMOGOR SERVER'
 
@@ -85,7 +86,20 @@ def start_server(host='127.0.0.1', port=65430):
                 if data == 'COPY':
                     continue
 
-                if data == 'EXECUTE':
+                if data[:7] == 'EXECUTE':
+                    cmd = data[8:]
+                    if os.path.exists(cmd):
+                        conn.send(f"Executing {cmd}".encode())
+                        try:
+                            subprocess.call(cmd, shell=True)
+                            conn.send(f"Command {cmd} has been executed".encode())
+                        except Exception as e:
+                            print(f"Error executing command: {e}")
+                            conn.send(f"Error executing command: {e}".encode())
+
+                    else:
+                        conn.send(f"Command {cmd} does not exist".encode())
+
                     continue
 
                 if data == 'TAKE SCREENSHOT':
