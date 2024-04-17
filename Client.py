@@ -18,7 +18,7 @@ def send_message(s, msg):
     s.send(header + msg)  # Send header followed by the actual message
 
 
-def start_client(server_host='127.0.0.1', server_port=65430):
+def start_client(server_host='127.0.0.1', server_port=65431):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((server_host, server_port))
         msg = input("Enter message: ")

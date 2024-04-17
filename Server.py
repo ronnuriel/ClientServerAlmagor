@@ -4,6 +4,8 @@ import socket
 import glob
 import os
 import subprocess
+# import pyautogui
+import shutil
 
 SERVER_NAME = 'ALMOGOR SERVER'
 
@@ -19,7 +21,7 @@ def clean_up_remain_data_in_socket(s):
     print(f"Cleaning up remaining data: {data.decode()}")
 
 
-def start_server(host='127.0.0.1', port=65430):
+def start_server(host='127.0.0.1', port=65431):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -83,12 +85,24 @@ def start_server(host='127.0.0.1', port=65430):
 
                     continue
 
-                if data == 'COPY':
+                if data[:4] == 'COPY':
+                    if len(data.split()) != 3:
+                        conn.send("WRONG COPY SYNTAX!!!".encode())
+                        continue
+
+                    file1, file2 = data[5:].split()
+                    if os.path.exists(file1):
+                        shutil.copy(file1, file2)
+                        conn.send(f"File {file1} has been copied to {file2}".encode())
+                    else:
+                        conn.send(f"File {file1} does not exist".encode())
+
                     continue
 
+                #TODO: DELETE THE FOLLOWING CODE
                 if data[:7] == 'EXECUTE':
                     cmd = data[8:]
-                    if os.path.exists(cmd):
+                    if os.path.isfile(cmd):
                         conn.send(f"Executing {cmd}".encode())
                         try:
                             subprocess.call(cmd, shell=True)
