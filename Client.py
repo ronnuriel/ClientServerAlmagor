@@ -59,12 +59,19 @@ def start_client(server_host='127.0.0.1', server_port=65430):
                 data = s.recv(max_size)
 
                 # Get the rest of the data - some data might still be in the socket!!! must send exact size or eof!
+                # According to the instructions given i need to expect the size of the incoming data to be max_size!
+                # But How can we know we got all the data? We can't! So we need to send a marker to indicate the end of the data.
+                # In this case, we will send the marker EOF_MARKER to indicate the end of the data.
+                # We will keep receiving data until we get the EOF_MARKER.
+                # To make sure we got all the data and got all the out from the socket we will check the last len(EOF_MARKER) bytes.
+                # and remove EOF from the data.
                 while data[-len(EOF_MARKER):] != EOF_MARKER:
                     data += s.recv(max_size-len(data))
                 data = data[:-len(EOF_MARKER)]
 
                 current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 filename = f"screenshot{current_time}.png"
+
                 # Get the message from the client
                 with open(filename, 'wb') as f:
                     f.write(data)
