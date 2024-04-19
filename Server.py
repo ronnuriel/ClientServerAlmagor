@@ -4,10 +4,11 @@ import socket
 import glob
 import os
 import subprocess
-# import pyautogui
+import pyautogui
 import shutil
 
 SERVER_NAME = 'ALMOGOR SERVER'
+
 
 def send_message(s, msg):
     msg = msg.encode()
@@ -22,6 +23,7 @@ def send_message(s, msg):
 
     s.send(header + msg)  # Send header followed by the actual message
 
+
 def get_message(s, size_of_message):
     if size_of_message == 0:
         return ''
@@ -33,7 +35,25 @@ def clean_up_remain_data_in_socket(s):
     print(f"Cleaning up remaining data: {data.decode()}")
 
 
-def start_server(host='127.0.0.1', port=65431):
+def send_photo(conn):
+    # Get the image data
+    with open("screenshot.png", "rb") as f:
+        image = f.read()
+
+    image_str_len = len(image)
+    print(f"Image size length: {len(str(image_str_len))}")
+    print(f"Image size length: {image_str_len}")
+    image_str_len = len(str(image_str_len))
+
+    header = image_str_len.to_bytes(4, byteorder='big')
+
+    # Send the image size
+    conn.send(header + image)
+
+    print(f"Image size length sent: {image_str_len}")
+
+
+def start_server(host='127.0.0.1', port=65430):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
@@ -111,7 +131,7 @@ def start_server(host='127.0.0.1', port=65431):
 
                     continue
 
-                #TODO: DELETE THE FOLLOWING CODE
+                # TODO: DELETE THE FOLLOWING CODE
                 if data[:7] == 'EXECUTE':
                     cmd = data[8:]
                     if os.path.isfile(cmd):
@@ -128,7 +148,10 @@ def start_server(host='127.0.0.1', port=65431):
 
                     continue
 
-                if data == 'TAKE SCREENSHOT':
+                if data[:15] == 'TAKE SCREENSHOT':
+                    image = pyautogui.screenshot()
+                    image.save("screenshot.png")  # I don't want to save the image
+                    send_photo(conn)
                     continue
 
                 print(f"Received from client: {data}")

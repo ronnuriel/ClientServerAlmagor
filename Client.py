@@ -1,7 +1,11 @@
 import socket
+from datetime import datetime
+
+
 
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 65431
+
 
 def get_message(s, size_of_message):
     if size_of_message == 0:
@@ -22,12 +26,13 @@ def send_message(s, msg):
 
     s.send(header + msg)  # Send header followed by the actual message
 
+
 def clean_up_remain_data_in_socket(s):
     data = s.recv(1024)
     print(f"Cleaning up remaining data: {data.decode()}")
 
 
-def start_client(server_host='127.0.0.1', server_port=65431):
+def start_client(server_host='127.0.0.1', server_port=65430):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((server_host, server_port))
         msg = input("Enter message: ")
@@ -47,10 +52,22 @@ def start_client(server_host='127.0.0.1', server_port=65431):
                 clean_up_remain_data_in_socket(s)
                 continue
 
-            data = get_message(s, msg_len)  # Get the message from the client
+            if msg == "TAKE SCREENSHOT":
+                max_size = pow(10, msg_len) - 1
+                print(f"Max size: {max_size}")
+                print(f"Reciving message length: {msg_len}")
+                data = s.recv(max_size)
+                current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                filename = f"screenshot{current_time}.png"
+                # Get the message from the client
+                with open(filename, 'wb') as f:
+                    f.write(data)
+                print(f"data length: {len(data)}")
 
-            print(f"Received: {data}")
 
+            else:
+                data = get_message(s, msg_len)  # Get the message from the client
+                print(f"Received: {data}")
 
             msg = input("Enter message: ")
             send_message(s, msg)  # Recive the command from the user and send it to the server.
