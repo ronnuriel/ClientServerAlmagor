@@ -9,6 +9,18 @@ import shutil
 
 SERVER_NAME = 'ALMOGOR SERVER'
 
+def send_message(s, msg):
+    msg = msg.encode()
+    msg_len = len(msg)
+    try:
+        header = msg_len.to_bytes(4, byteorder='big')  # Convert length to 4 bytes
+    except OverflowError:
+        print("Message too long EXITS")
+        msg = "EXIT".encode()
+        s.send(len(msg).to_bytes(4, byteorder='big') + msg)  # Send header followed by the actual message
+        return
+
+    s.send(header + msg)  # Send header followed by the actual message
 
 def get_message(s, size_of_message):
     if size_of_message == 0:
@@ -41,19 +53,19 @@ def start_server(host='127.0.0.1', port=65431):
                         continue
                 else:
                     print("Invalid header received: not 4 bytes")
-                    conn.send("WRONG PROTOCOL!!!".encode())
+                    send_message(conn, "WRONG PROTOCOL!!!")
                     clean_up_remain_data_in_socket(conn)
                     continue
 
                 data = get_message(conn, msg_len)  # Get the message from the client
 
                 if not data:
-                    conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
+                    send_message(conn, "WRONG PROTOCOL!!!")  # Echo back the received message
                     continue
 
                 if len(data) != msg_len:
                     print("Invalid message received: length does not match header")
-                    conn.send("WRONG PROTOCOL!!!".encode())
+                    send_message(conn, "WRONG PROTOCOL!!!")
                     if len(data) > msg_len:
                         print(f"Cleaning up remaining data: {data[msg_len:]}")
                     continue
@@ -69,33 +81,33 @@ def start_server(host='127.0.0.1', port=65431):
 
                     if location:
                         files = glob.glob(location + "/*.*")
-                        conn.send(str(files).encode())
+                        send_message(conn, str(files))
 
                     else:
-                        conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
+                        send_message(conn, "WRONG PROTOCOL!!!")  # Echo back the received message
                     continue
 
                 if data[:6] == 'DELETE':
                     file_name = data[7:]
                     if os.path.exists(file_name):
                         os.remove(file_name)
-                        conn.send(f"File {file_name} has been deleted".encode())
+                        send_message(conn, f"File {file_name} has been deleted")
                     else:
-                        conn.send(f"File {file_name} does not exist".encode())
+                        send_message(conn, f"File {file_name} does not exist")
 
                     continue
 
                 if data[:4] == 'COPY':
                     if len(data.split()) != 3:
-                        conn.send("WRONG COPY SYNTAX!!!".encode())
+                        send_message(conn, "WRONG COPY SYNTAX!!!")
                         continue
 
                     file1, file2 = data[5:].split()
                     if os.path.exists(file1):
                         shutil.copy(file1, file2)
-                        conn.send(f"File {file1} has been copied to {file2}".encode())
+                        send_message(conn, f"File {file1} has been copied to {file2}")
                     else:
-                        conn.send(f"File {file1} does not exist".encode())
+                        send_message(conn, f"File {file1} does not exist")
 
                     continue
 
@@ -103,16 +115,16 @@ def start_server(host='127.0.0.1', port=65431):
                 if data[:7] == 'EXECUTE':
                     cmd = data[8:]
                     if os.path.isfile(cmd):
-                        conn.send(f"Executing {cmd}".encode())
+                        send_message(conn, f"Executing {cmd}")
                         try:
                             subprocess.call(cmd, shell=True)
-                            conn.send(f"Command {cmd} has been executed".encode())
+                            send_message(conn, f"Command {cmd} has been executed")
                         except Exception as e:
                             print(f"Error executing command: {e}")
-                            conn.send(f"Error executing command: {e}".encode())
+                            send_message(conn, f"Error executing command: {e}")
 
                     else:
-                        conn.send(f"Command {cmd} does not exist".encode())
+                        send_message(conn, f"Command {cmd} does not exist")
 
                     continue
 
@@ -120,7 +132,7 @@ def start_server(host='127.0.0.1', port=65431):
                     continue
 
                 print(f"Received from client: {data}")
-                conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
+                send_message(conn, "WRONG PROTOCOL!!!")  # Echo back the received message
 
 
 if __name__ == "__main__":
