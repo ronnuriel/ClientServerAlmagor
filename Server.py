@@ -8,6 +8,7 @@ import pyautogui
 import shutil
 
 SERVER_NAME = 'ALMOGOR SERVER'
+EOF_MARKER = b"END_OF_FILE"
 
 
 def send_message(s, msg):
@@ -48,7 +49,7 @@ def send_photo(conn):
     header = image_str_len.to_bytes(4, byteorder='big')
 
     # Send the image size
-    conn.send(header + image)
+    conn.sendall(header + image + EOF_MARKER)
 
     print(f"Image size length sent: {image_str_len}")
 

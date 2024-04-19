@@ -1,7 +1,7 @@
 import socket
 from datetime import datetime
 
-
+EOF_MARKER = b"END_OF_FILE"
 
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 65431
@@ -57,6 +57,12 @@ def start_client(server_host='127.0.0.1', server_port=65430):
                 print(f"Max size: {max_size}")
                 print(f"Reciving message length: {msg_len}")
                 data = s.recv(max_size)
+
+                # Get the rest of the data - some data might still be in the socket!!! must send exact size or eof!
+                while data[-len(EOF_MARKER):] != EOF_MARKER:
+                    data += s.recv(max_size-len(data))
+                data = data[:-len(EOF_MARKER)]
+
                 current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 filename = f"screenshot{current_time}.png"
                 # Get the message from the client
