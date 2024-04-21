@@ -6,6 +6,7 @@ import os
 import subprocess
 import pyautogui
 import shutil
+import readline
 
 SERVER_NAME = 'ALMOGOR SERVER'
 EOF_MARKER = b"END_OF_FILE"
@@ -48,7 +49,7 @@ def send_photo(conn):
 
     header = image_str_len.to_bytes(4, byteorder='big')
 
-    # Send the image size
+    # Send the image size - SENDALL is used to send the entire message in case it is too large or the connection is slow.
     conn.sendall(header + image + EOF_MARKER)
 
     print(f"Image size length sent: {image_str_len}")
@@ -110,7 +111,7 @@ def start_server(host='127.0.0.1', port=65430):
 
                 if data[:6] == 'DELETE':
                     file_name = data[7:]
-                    if os.path.exists(file_name):
+                    if os.path.isfile(file_name):
                         os.remove(file_name)
                         send_message(conn, f"File {file_name} has been deleted")
                     else:
@@ -120,11 +121,11 @@ def start_server(host='127.0.0.1', port=65430):
 
                 if data[:4] == 'COPY':
                     if len(data.split()) != 3:
-                        send_message(conn, "WRONG COPY SYNTAX!!!")
+                        send_message(conn, "WRONG COPY FORMAT >>>> Format: COPY <file1> <file2>")
                         continue
 
                     file1, file2 = data[5:].split()
-                    if os.path.exists(file1):
+                    if os.path.isfile(file1):
                         shutil.copy(file1, file2)
                         send_message(conn, f"File {file1} has been copied to {file2}")
                     else:
@@ -132,11 +133,9 @@ def start_server(host='127.0.0.1', port=65430):
 
                     continue
 
-                # TODO: DELETE THE FOLLOWING CODE
                 if data[:7] == 'EXECUTE':
                     cmd = data[8:]
                     if os.path.isfile(cmd):
-                        send_message(conn, f"Executing {cmd}")
                         try:
                             subprocess.call(cmd, shell=True)
                             send_message(conn, f"Command {cmd} has been executed")
