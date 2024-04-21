@@ -1,8 +1,29 @@
 import datetime
 import random
 import socket
+import glob
+import os
+import subprocess
+import pyautogui
+import shutil
+import readline
 
 SERVER_NAME = 'ALMOGOR SERVER'
+EOF_MARKER = b"END_OF_FILE"
+
+
+def send_message(s, msg):
+    msg = msg.encode()
+    msg_len = len(msg)
+    try:
+        header = msg_len.to_bytes(4, byteorder='big')  # Convert length to 4 bytes
+    except OverflowError:
+        print("Message too long EXITS")
+        msg = "EXIT".encode()
+        s.send(len(msg).to_bytes(4, byteorder='big') + msg)  # Send header followed by the actual message
+        return
+
+    s.send(header + msg)  # Send header followed by the actual message
 
 
 def get_message(s, size_of_message):
@@ -14,6 +35,31 @@ def get_message(s, size_of_message):
 def clean_up_remain_data_in_socket(s):
     data = s.recv(1024)
     print(f"Cleaning up remaining data: {data.decode()}")
+
+
+def send_photo(conn):
+    if not os.path.isfile("screenshot.png"):
+        image = b"ERROR: NO SCREENSHOT AVAILABLE!!! "
+        header = len("123").to_bytes(4, byteorder='big')
+        print("No screenshot available")
+        conn.sendall(header + image + EOF_MARKER)
+        return
+
+    # Get the image data
+    with open("screenshot.png", "rb") as f:
+        image = f.read()
+
+    image_str_len = len(image)
+    print(f"Image size length: {len(str(image_str_len))}")
+    print(f"Image size length: {image_str_len}")
+    image_str_len = len(str(image_str_len))
+
+    header = image_str_len.to_bytes(4, byteorder='big')
+
+    # Send the image size - SENDALL is used to send the entire message in case it is too large or the connection is slow.
+    conn.sendall(header + image + EOF_MARKER)
+
+    print(f"Image size length sent: {image_str_len}")
 
 
 def start_server(host='127.0.0.1', port=65430):
@@ -36,19 +82,19 @@ def start_server(host='127.0.0.1', port=65430):
                         continue
                 else:
                     print("Invalid header received: not 4 bytes")
-                    conn.send("WRONG PROTOCOL!!!".encode())
+                    send_message(conn, "WRONG PROTOCOL!!!")
                     clean_up_remain_data_in_socket(conn)
                     continue
 
                 data = get_message(conn, msg_len)  # Get the message from the client
 
                 if not data:
-                    conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
+                    send_message(conn, "WRONG PROTOCOL!!!")  # Echo back the received message
                     continue
 
                 if len(data) != msg_len:
                     print("Invalid message received: length does not match header")
-                    conn.send("WRONG PROTOCOL!!!".encode())
+                    send_message(conn, "WRONG PROTOCOL!!!")
                     if len(data) > msg_len:
                         print(f"Cleaning up remaining data: {data[msg_len:]}")
                     continue
@@ -57,25 +103,75 @@ def start_server(host='127.0.0.1', port=65430):
                     print("Client has exited")
                     break
 
-                if data == 'TIME':
-                    print("Client has requested for time")
-                    time = str(datetime.datetime.now().ctime())
+                if data[:3] == 'DIR':
+                    location = data[4:]
+                    print("Client has requested for directory listing")
+                    print("Location: ", location)
 
-                    conn.send(time.encode())
+                    if location:
+                        files = glob.glob(location + "/*.*")
+                        send_message(conn, str(files))
+
+                    else:
+                        send_message(conn, "WRONG PROTOCOL!!!")  # Echo back the received message
                     continue
 
-                if data == 'WHOR':
-                    print("Client has requested for hostname")
-                    conn.send(SERVER_NAME.encode())
+                if data[:6] == 'DELETE':
+                    file_name = data[7:]
+                    if os.path.isfile(file_name):
+                        os.remove(file_name)
+                        send_message(conn, f"File {file_name} has been deleted")
+                    else:
+                        send_message(conn, f"File {file_name} does not exist")
+
                     continue
 
-                if data == 'RAND':
-                    print("Client has requested for random number")
-                    conn.send(str.encode(str(random.randint(1, 10))))
+                if data[:4] == 'COPY':
+                    if len(data.split()) != 3:
+                        send_message(conn, "WRONG COPY FORMAT >>>> Format: COPY <file1> <file2>")
+                        continue
+
+                    file1, file2 = data[5:].split()
+                    if os.path.isfile(file1):
+                        shutil.copy(file1, file2)
+                        send_message(conn, f"File {file1} has been copied to {file2}")
+                    else:
+                        send_message(conn, f"File {file1} does not exist")
+
                     continue
+
+                if data[:7] == 'EXECUTE':
+                    cmd = data[8:]
+                    if os.path.isfile(cmd):
+                        try:
+                            subprocess.call(cmd, shell=True)
+                            send_message(conn, f"Command {cmd} has been executed")
+                        except Exception as e:
+                            print(f"Error executing command: {e}")
+                            send_message(conn, f"Error executing command: {e}")
+
+                    else:
+                        send_message(conn, f"Command {cmd} does not exist")
+
+                    continue
+
+                if data[:15] == 'TAKE SCREENSHOT':
+                    image = pyautogui.screenshot()
+                    image.save("screenshot.png")  # I don't want to save the image
+                    send_message(conn, "TAKING SCREENSHOT! > TO RECIVE PLEASE USE 'SEND PHOTO'")
+                    continue
+
+                if data[:] == 'SEND PHOTO':
+                    #TODO: WHAT IF PHOTO DOESNOT EXIST???
+                    print("SENDING PHOTO")
+                    send_photo(conn)
+                    continue
+
+
+
 
                 print(f"Received from client: {data}")
-                conn.send("WRONG PROTOCOL!!!".encode())  # Echo back the received message
+                send_message(conn, "WRONG PROTOCOL!!!")  # Echo back the received message
 
 
 if __name__ == "__main__":
