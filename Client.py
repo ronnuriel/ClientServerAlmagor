@@ -52,11 +52,17 @@ def start_client(server_host='127.0.0.1', server_port=65430):
                 clean_up_remain_data_in_socket(s)
                 continue
 
-            if msg == "TAKE SCREENSHOT":
+            if msg == "SEND PHOTO":
                 max_size = pow(10, msg_len) - 1
                 print(f"Max size: {max_size}")
                 print(f"Reciving message length: {msg_len}")
                 data = s.recv(max_size)
+
+                if b"ERROR: NO SCREENSHOT AVAILABLE!!!" in data :
+                    print("No screenshot available")
+                    msg = input("Enter message: ")
+                    send_message(s, msg)  # Recive the command from the user and send it to the server.
+                    continue
 
                 # Get the rest of the data - some data might still be in the socket!!! must send exact size or eof!
                 # According to the instructions given i need to expect the size of the incoming data to be max_size!

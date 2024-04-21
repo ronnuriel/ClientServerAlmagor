@@ -38,6 +38,13 @@ def clean_up_remain_data_in_socket(s):
 
 
 def send_photo(conn):
+    if not os.path.isfile("screenshot.png"):
+        image = b"ERROR: NO SCREENSHOT AVAILABLE!!! "
+        header = len("123").to_bytes(4, byteorder='big')
+        print("No screenshot available")
+        conn.sendall(header + image + EOF_MARKER)
+        return
+
     # Get the image data
     with open("screenshot.png", "rb") as f:
         image = f.read()
@@ -151,8 +158,17 @@ def start_server(host='127.0.0.1', port=65430):
                 if data[:15] == 'TAKE SCREENSHOT':
                     image = pyautogui.screenshot()
                     image.save("screenshot.png")  # I don't want to save the image
+                    send_message(conn, "TAKING SCREENSHOT! > TO RECIVE PLEASE USE 'SEND PHOTO'")
+                    continue
+
+                if data[:] == 'SEND PHOTO':
+                    #TODO: WHAT IF PHOTO DOESNOT EXIST???
+                    print("SENDING PHOTO")
                     send_photo(conn)
                     continue
+
+
+
 
                 print(f"Received from client: {data}")
                 send_message(conn, "WRONG PROTOCOL!!!")  # Echo back the received message
