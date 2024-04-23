@@ -58,7 +58,7 @@ def start_client(server_host='127.0.0.1', server_port=65430):
                 print(f"Reciving message length: {msg_len}")
                 data = s.recv(max_size)
 
-                if b"ERROR: NO SCREENSHOT AVAILABLE!!!" in data :
+                if b'ERROR: NO SCREENSHOT AVAILABLE!!! END_OF_FILE' == data:
                     print("No screenshot available")
                     msg = input("Enter message: ")
                     send_message(s, msg)  # Recive the command from the user and send it to the server.
