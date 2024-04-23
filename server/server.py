@@ -8,7 +8,7 @@ import pyautogui
 
 # Constants for the server
 IP = '127.0.0.1'
-PORT = 12345
+PORT = 1234
 PHOTO_PATH = "screenshot.png"  # Example path where the screenshot will be saved
 
 
@@ -45,7 +45,7 @@ def check_client_request(cmd):
         return False, command, params
 
 
-def handle_client_request(command, params):
+def handle_client_request(command, params, client_socket):
     """Generate a response based on the command and parameters."""
     if command == "DIR":
         # List directory contents
@@ -90,8 +90,21 @@ def handle_client_request(command, params):
     elif command == "SEND_PHOTO":
         # Send the size of the photo
         try:
+            if not os.path.isfile(PHOTO_PATH):
+                response = 'Error: Screenshot not found'
+                return response
+
             file_size = os.path.getsize(PHOTO_PATH)
             response = str(file_size)
+            res = create_msg(response)
+            client_socket.sendall(res)
+
+            with open(PHOTO_PATH, 'rb') as file:
+                photo = file.read()
+            response = photo
+            client_socket.sendall(response)
+            return
+
         except OSError as e:
             response = f'Error: {str(e)}'
     else:
@@ -118,7 +131,11 @@ def main():
 
             valid_cmd, command, params = check_client_request(cmd)
             if valid_cmd:
-                response = handle_client_request(command, params)
+                response = handle_client_request(command, params, client_socket)
+
+                if command == "SEND_PHOTO" and response != 'Error: Screenshot not found':
+                    continue
+
                 res = create_msg(response)
                 client_socket.sendall(res)
             else:
@@ -131,7 +148,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 # def test_check_client_request():
 #     # WORKING DIR PATH

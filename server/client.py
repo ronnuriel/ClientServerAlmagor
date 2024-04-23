@@ -1,9 +1,10 @@
+from datetime import datetime
 import socket
 from protocol import check_cmd, create_msg, get_msg
 
 IP = '127.0.0.1'
-PORT = 12345
-SAVED_PHOTO_LOCATION = "received_screenshot.png"  # Where the client saves received screenshots
+PORT = 1234
+SAVED_PHOTO_LOCATION = "received_screenshot"  # Where the client saves received screenshots
 
 def handle_server_response(my_socket, cmd):
     """
@@ -17,9 +18,22 @@ def handle_server_response(my_socket, cmd):
 
     if cmd.startswith("SEND_PHOTO"):
         # Here we assume the server sends the file size first, followed by the file bytes
+        if not response.isdigit():
+            print("Error in response - expected a number")
+            return
+
         file_size = int(response)
+
         received_data = my_socket.recv(file_size)
-        with open(SAVED_PHOTO_LOCATION, 'wb') as file:
+
+        while len(received_data) < file_size:
+            received_data += my_socket.recv(file_size - len(received_data))
+
+
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"{SAVED_PHOTO_LOCATION}{current_time}.png"
+
+        with open(filename, 'wb') as file:
             file.write(received_data)
         print(f"Photo received and saved to {SAVED_PHOTO_LOCATION}")
     else:
