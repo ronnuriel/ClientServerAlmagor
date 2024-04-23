@@ -1,40 +1,41 @@
-#   Ex. 2.7 template - client side
-#   Author: Barak Gonen, 2017
-#   Modified for Python 3, 2020
-
-
 import socket
-import protocol
+from protocol import check_cmd, create_msg, get_msg
 
-
-IP = ????
-SAVED_PHOTO_LOCATION = ???? # The path + filename where the copy of the screenshot at the client should be saved
+IP = '127.0.0.1'
+PORT = 12345
+SAVED_PHOTO_LOCATION = "received_screenshot.png"  # Where the client saves received screenshots
 
 def handle_server_response(my_socket, cmd):
     """
-    Receive the response from the server and handle it, according to the request
-    For example, DIR should result in printing the contents to the screen,
-    Note- special attention should be given to SEND_PHOTO as it requires and extra receive
+    Receive the response from the server and handle it according to the request.
+    Note that SEND_PHOTO needs special handling.
     """
-    # (8) treat all responses except SEND_PHOTO
+    success, response = get_msg(my_socket)
+    if not success:
+        print("Failed to receive valid response")
+        return
 
-    # (10) treat SEND_PHOTO
-
+    if cmd.startswith("SEND_PHOTO"):
+        # Here we assume the server sends the file size first, followed by the file bytes
+        file_size = int(response)
+        received_data = my_socket.recv(file_size)
+        with open(SAVED_PHOTO_LOCATION, 'wb') as file:
+            file.write(received_data)
+        print(f"Photo received and saved to {SAVED_PHOTO_LOCATION}")
+    else:
+        print(response)
 
 def main():
-    # open socket with the server
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    my_socket.connect((IP, PORT))
 
-    # (2)
+    print('Welcome to the remote computer application. Available commands are:')
+    print('TAKE_SCREENSHOT, SEND_PHOTO, DIR, DELETE, COPY, EXECUTE, EXIT')
 
-    # print instructions
-    print('Welcome to remote computer application. Available commands are:\n')
-    print('TAKE_SCREENSHOT\nSEND_PHOTO\nDIR\nDELETE\nCOPY\nEXECUTE\nEXIT')
-
-    # loop until user requested to exit
     while True:
         cmd = input("Please enter command:\n")
-        if protocol_solution.check_cmd(cmd):
-            packet = protocol_solution.create_msg(cmd)
+        if check_cmd(cmd):
+            packet = create_msg(cmd)
             my_socket.send(packet)
             handle_server_response(my_socket, cmd)
             if cmd == 'EXIT':

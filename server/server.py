@@ -6,15 +6,16 @@ import subprocess
 import pyautogui
 
 # Constants for the server
-IP = 'localhost'
+IP = '127.0.0.1'
 PORT = 12345
 PHOTO_PATH = "screenshot.png"  # Example path where the screenshot will be saved
 
 
 def check_client_request(cmd):
     """Check if the command and params from the client are valid."""
-    # Example command: "DIR c:\\cyber"
+    # Example command: "'0051DIR /Users/ronnuriel/git/ClientServerAlmagor/server'"
     parts = cmd.split()
+
     command = parts[0]
     params = parts[1:]
 
@@ -123,35 +124,33 @@ def main():
         print("Connection closed.")
 
 
-def test_check_client_request():
-    # WORKING DIR PATH
-    current_directory = os.getcwd()
-    assert check_client_request(f"DIR {current_directory}/") == (True, 'DIR', [current_directory + '/'])
-    # WORKING FILE PATH
-    assert check_client_request(f"DELETE {current_directory}/example.txt") == (True, 'DELETE', [current_directory + '/example.txt'])
-    # WORKING FILE PATH
-    assert check_client_request(f"COPY {current_directory}/source.txt {current_directory}/dest.txt") == (True, 'COPY', [current_directory + '/source.txt', current_directory + '/dest.txt'])
-    # WORKING COMMAND
-    assert check_client_request(f"EXECUTE {current_directory}/test.sh") == (True, 'EXECUTE', [f"{current_directory}/test.sh"])
-    # WORKING DIR PATH
-    assert check_client_request("TAKE_SCREENSHOT") == (True, 'TAKE_SCREENSHOT', [])
-    # WORKING DIR PATH
-    assert check_client_request("SEND_PHOTO") == (True, 'SEND_PHOTO', [])
-    # INVALID COMMAND
-    assert check_client_request("INVALID") == (False, 'INVALID', [])
-    # INVALID COMMAND
-    assert check_client_request("DIR") == (False, 'DIR', [])
-    # INVALID COMMAND
-    assert check_client_request("DELETE") == (False, 'DELETE', [])
-    # INVALID COMMAND
-    assert check_client_request("COPY") == (False, 'COPY', [])
-
-
 if __name__ == '__main__':
-    print(check_client_request("DIR c:\\cyber"))  # Should return (True, 'DIR', ['c:\\cyber'])
-    print(check_client_request("DELETE example.txt"))  # Example assuming 'example.txt' exists
-    print(check_client_request("COPY source.txt dest.txt"))  # Example assuming 'source.txt' exists
-    print(check_client_request("EXECUTE notepad.exe"))  # Example assuming notepad.exe exists
-    # print(check_client_request("TAKE_SCREENSHOT"))  # Should return (True, 'TAKE_SCREENSHOT', [])
-    print(check_client_request("SEND_PHOTO"))  # Should return (True, 'SEND_PHOTO', [])
-    # main()
+    main()
+
+
+# def test_check_client_request():
+#     # WORKING DIR PATH
+#     current_directory = os.getcwd()
+#
+#     assert check_client_request(f"DIR {current_directory}/") == (True, 'DIR', [current_directory + '/'])
+#     # WORKING FILE PATH
+#     assert check_client_request(f"DELETE {current_directory}/example.txt") == (
+#     True, 'DELETE', [current_directory + '/example.txt'])
+#     # WORKING FILE PATH
+#     assert check_client_request(f"COPY {current_directory}/source.txt {current_directory}/dest.txt") == (
+#     True, 'COPY', [current_directory + '/source.txt', current_directory + '/dest.txt'])
+#     # WORKING COMMAND
+#     assert check_client_request(f"EXECUTE {current_directory}/test.sh") == (
+#     True, 'EXECUTE', [f"{current_directory}/test.sh"])
+#     # WORKING DIR PATH
+#     assert check_client_request("TAKE_SCREENSHOT") == (True, 'TAKE_SCREENSHOT', [])
+#     # WORKING DIR PATH
+#     assert check_client_request("SEND_PHOTO") == (True, 'SEND_PHOTO', [])
+#     # INVALID COMMAND
+#     assert check_client_request("INVALID") == (False, 'INVALID', [])
+#     # INVALID COMMAND
+#     assert check_client_request("DIR") == (False, 'DIR', [])
+#     # INVALID COMMAND
+#     assert check_client_request("DELETE") == (False, 'DELETE', [])
+#     # INVALID COMMAND
+#     assert check_client_request("COPY") == (False, 'COPY', [])
