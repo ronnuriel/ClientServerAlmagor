@@ -2,7 +2,8 @@ import shutil
 import socket
 import os
 import subprocess
-
+from protocol import create_msg, get_msg
+import glob
 import pyautogui
 
 # Constants for the server
@@ -14,7 +15,10 @@ PHOTO_PATH = "screenshot.png"  # Example path where the screenshot will be saved
 def check_client_request(cmd):
     """Check if the command and params from the client are valid."""
     # Example command: "'0051DIR /Users/ronnuriel/git/ClientServerAlmagor/server'"
-    parts = cmd.split()
+    if not cmd[0]:
+        return False, "", []
+
+    parts = cmd[1].split()
 
     command = parts[0]
     params = parts[1:]
@@ -46,8 +50,7 @@ def handle_client_request(command, params):
     if command == "DIR":
         # List directory contents
         try:
-            files = os.listdir(params[0])
-            response = '\n'.join(files)
+            response = str(glob.glob(params[0] + "/*.*"))
         except OSError as e:
             response = f'Error: {str(e)}'
 
@@ -108,14 +111,16 @@ def main():
     try:
         while True:
             # Receiving the command from the client
-            cmd = client_socket.recv(1024).decode()
+            cmd = get_msg(client_socket)
+
             if not cmd:
                 break  # client has closed the connection
 
             valid_cmd, command, params = check_client_request(cmd)
             if valid_cmd:
                 response = handle_client_request(command, params)
-                client_socket.sendall(response.encode())
+                res = create_msg(response)
+                client_socket.sendall(res)
             else:
                 client_socket.sendall('Invalid command or parameters'.encode())
     finally:
